@@ -27,6 +27,8 @@ model User {
   likes           Likes[]
   bookmarks       Bookmark[]
   series          Series[]
+  followers       Follow[]     @relation("followerRelation")
+  followings      Follow[]     @relation("followingRelation")
 
   @@map("users")
 }
@@ -140,3 +142,17 @@ model Series {
 }
 
 // TODO: FOLLOWers , NOTIFICATIONS, SETTINGS models can be added later
+
+model Follow {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  followerId  String @db.ObjectId
+  followingId String @db.ObjectId
+  follower    User   @relation("followerRelation", fields: [followerId], references: [id])
+  following   User   @relation("followingRelation", fields: [followingId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
