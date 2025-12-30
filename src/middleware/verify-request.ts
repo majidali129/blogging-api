@@ -1,5 +1,5 @@
 import { ApiError } from "@/utils/api-error";
-import { asyncHandler } from "@/utils/async-handler.js";
+import { asyncHandler } from "@/utils/async-handler";
 import { verifyToken } from "@/utils/jwts";
 
 

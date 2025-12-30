@@ -1,10 +1,10 @@
 
 import express  from 'express';
-import { config } from './config/index.js'
+import { config } from './config/index'
 import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
-import { appRouter } from './routes/index.js';
-import { globalErrorHandler } from './middleware/globar-error-handler.js';
+import { appRouter } from './routes/index';
+import { globalErrorHandler } from './middleware/globar-error-handler';
 
 
 const corsOptions: CorsOptions = {

@@ -1,6 +1,4 @@
 import { cloudinary } from "@/lib/cloudinary"
-import { UploadApiResponse } from "cloudinary";
-import fs from 'fs'
 
 
 
