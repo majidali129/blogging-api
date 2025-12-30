@@ -1,5 +1,5 @@
 import { asyncHandler } from "@/utils/async-handler";
-import { checkUsernameInput, signInInput, signUpInput } from "@/utils/zod/auth";
+import { checkUsernameInput, signInInput, signUpInput } from "@/utils/zod/auth-schema";
 import { Request, Response } from "express";
 import  bcrypt from 'bcrypt'
 import { prisma } from "@/lib/prisma";

@@ -37,19 +37,25 @@ type SocialLinks {
   website String
 }
 
+type CoverImage {
+  id  String
+  url String
+}
+
 model Post {
-  id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  slug        String     @unique
-  description String
-  summary     String
-  coverImage  String?
-  tags        String[]   @default([])
-  readTime    Int
-  views       Int        @default(0)
-  status      PostStatus @default(PUBLISHED)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  slug         String      @unique
+  description  String
+  summary      String
+  coverImage   CoverImage?
+  tags         String[]    @default([])
+  readTime     Int
+  views        Int         @default(0)
+  status       PostStatus  @default(PUBLISHED)
+  isMemberOnly Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   // Relations 
   authorId  String     @db.ObjectId
@@ -78,7 +84,7 @@ model Comment {
 
   // ! Relations
   postId          String    @db.ObjectId
-  post            Post      @relation(fields: [postId], references: [id])
+  post            Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorId        String    @db.ObjectId
   author          User      @relation(fields: [authorId], references: [id])
   parentCommentId String?   @db.ObjectId
@@ -109,7 +115,7 @@ model Bookmark {
   updatedAt DateTime @updatedAt
 
   // ! Relations
-  userId String @db.ObjectId
+  userId String @unique @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
   postId String @db.ObjectId
   post   Post   @relation(fields: [postId], references: [id])

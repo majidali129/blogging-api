@@ -1,4 +1,4 @@
-import { checkUsernameAvailability, getCurrentUser, refreshToken, signIn, signOut, signUp } from "@/controllers/auth.controllers.js";
+import { checkUsernameAvailability, getCurrentUser, refreshToken, signIn, signOut, signUp } from "@/controllers/auth-controllers.js";
 import { verifyRequest } from "@/middleware/verify-request";
 import { Router } from "express";
 
@@ -14,4 +14,5 @@ router.route('/sign-out').post(verifyRequest, signOut)
 router.route('/me').get(verifyRequest, getCurrentUser)
 
 
+export { router as authRouter }
 export default router;
