@@ -1,3 +1,4 @@
+import { config } from "@/config";
 import { isOwner } from "@/helpers/is-owner";
 import { slugify } from "@/helpers/slugify";
 import { uploadToCloudinary } from "@/helpers/upload-to-cloudinary";
@@ -8,6 +9,7 @@ import { apiResponse } from "@/utils/api-response";
 import { asyncHandler } from "@/utils/async-handler";
 import { newPostSchema, updatePostSchema } from "@/utils/zod/post-schema";
 import fs from 'fs'
+import { parse } from "path";
 
 
 export const createPost = asyncHandler(async (req, res) => {
@@ -131,8 +133,49 @@ export const deletePost = asyncHandler(async (req, res) => {
     return apiResponse(res, 200, 'Post deleted successfully')
 })
 
+type QueryFields = {
+    page?: string;
+    pageSize?: string;
+    search?: string;
+    slug?: string;
+    tags?: string; // 't1,t2,t3
+    isMemberOnly?: string;
+}
 export const getAllPosts = asyncHandler(async (req, res) => {
+    const { page = '1', pageSize = config.DEFAULT_RESPONSE_LIMIT, search = "", slug = "", tags = "", isMemberOnly  }: QueryFields = req.query;
+    const currentPage = parseInt(page, 10);
+    const perPage = parseInt(pageSize, 10);
+    const offset = (currentPage - 1) * perPage;
+
+    const whereClause: any = {};
+    if (slug) whereClause.slug = slug;
+    else if ( search || tags || isMemberOnly) {
+        whereClause.OR = [
+            search ? {
+                title: { contains: search },
+            } : undefined,
+            search ? {
+                description: { contains: search, mode: 'insensitive' },
+                     
+            } : undefined,
+            search ? {
+                summary: { contains: search, mode: 'insensitive' },
+            } : undefined,
+            tags && tags.length > 0 ? {
+                tags: {
+                    hasSome: tags?.trim().split(',')
+                },
+            } : undefined,
+            isMemberOnly ? { isMemberOnly: isMemberOnly === 'true' } : undefined
+        ].filter(Boolean)
+    };
+    console.log(JSON.stringify(whereClause))
+    
+    
     const posts = await prisma.post.findMany({
+        skip: offset,
+       take: perPage,
+        where: whereClause,
         select: {
             id: true,
             title: true,
@@ -140,6 +183,7 @@ export const getAllPosts = asyncHandler(async (req, res) => {
             description: true,
             coverImage: true,
             isMemberOnly: true,
+            tags: true,
             author: {
                 select: {
                     id: true,
@@ -156,10 +200,21 @@ export const getAllPosts = asyncHandler(async (req, res) => {
                     bookmarks: true
                 }
             }
-       }
+        },
     });
+    const count = await prisma.post.count();
+    const totalPages = Math.ceil(count / perPage)
+    const hasNext = currentPage < totalPages;
 
-    return apiResponse(res, 200, 'Posts fetched successfully', posts)
+    return apiResponse(res, 200, 'Posts fetched successfully', {
+        total: count,
+        page: currentPage,
+        pageSize: perPage,
+        totalPages,
+        hasNext,
+        results: posts.length,
+        posts,
+    })
 })
 
 
