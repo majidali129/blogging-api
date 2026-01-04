@@ -8,12 +8,7 @@ import { bookmarkRotuer } from "./bookmark-routes";
 
 const router = Router()
 
-// router.route('/:view').post(verifyRequest, upload.single('coverImage'), createPost).get(getAllPosts)
-router.post('/', verifyRequest, upload.single('coverImage'), createPost);
-router.get('/', getAllPosts) // 
-
-const views = ['/week', '/month', '/year', '/latest', '/infinity', '/following', '/discover']
-// router.get(`/view/monthly`, getAllPosts)
+router.route('/').get(getAllPosts).post(verifyRequest, upload.single('coverImage'), createPost)
 
 router.use('/:postId/comments', commentsRouter)
 router.use('/:postId/comments/:id', commentsRouter)

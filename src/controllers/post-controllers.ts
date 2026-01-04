@@ -195,5 +195,3 @@ export const getPostDetails = asyncHandler(async (req, res) => {
     if (!post) throw new ApiError(404, 'Post not found');   
     return apiResponse(res, 200, 'Post fetched successfully', post)
 })
-
-
