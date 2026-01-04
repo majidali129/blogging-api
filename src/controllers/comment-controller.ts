@@ -1,8 +1,10 @@
+import { config } from "@/config";
 import { isOwner } from "@/helpers/is-owner";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/utils/api-error";
 import { apiResponse } from "@/utils/api-response";
 import { asyncHandler } from "@/utils/async-handler";
+import { CommentQueryBuilder } from "@/utils/query-builder.ts/comment-query-builder";
 import { newCommentSchema, updateCommentSchema } from "@/utils/zod/comment-schema";
 
 
@@ -117,57 +119,37 @@ export const deleteComment = asyncHandler(async (req, res) => {
  })
 
 export const getPostComments = asyncHandler(async (req, res) => { 
-    const postId = req.params.postId;
+    const builder = new CommentQueryBuilder(req.query, config.DEFAULT_RESPONSE_LIMIT, req.user );
+
+    builder
+        .addPagination()
+    .addParentCommentFilter()
+        .addPostFilter()
+        .addSearchFilter()
+        .addAuthorFilter();
     
-    // TODO: PAGINATION ( CURSOR BASED )
+    const filters = builder.build();
+    
     const comments = await prisma.comment.findMany({
-        where: {postId, parentCommentId: null },
-        include: {
-            author: {
-                select: {
-                    id: true,
-                    username: true,
-                    profileImage: true
-                }
-            },
-            childComments: {
-                include: {
-                    author: {
-                        select: {
-                            id: true,
-                            username: true,
-                            profileImage: true
-                        }
-                    },
-                    childComments: {
-                include: {
-                    author: {
-                        select: {
-                            id: true,
-                            username: true,
-                            profileImage: true
-                        }
-                            },
-                    childComments: {
-                include: {
-                    author: {
-                        select: {
-                            id: true,
-                            username: true,
-                            profileImage: true
-                        }
-                    }
-                }
-            }
-                        },
-                        
-            }
-                }
-            }
-        }
+        where: { ...filters.where},
+        orderBy: filters.orderBy,
+        skip: filters.skip,
+        take: filters.take,
+        select: filters.select,
     });
 
-    return apiResponse(res, 200, 'Comments fetched successfully', comments);
+
+    const count = await prisma.comment.count({ 
+    where: { ...filters.where } 
+  });
+
+  return apiResponse(res, 200, 'Comments fetched', {
+    total: count,
+    page: filters.pagination.page,
+    results: comments.length,
+    comments,
+  });
+
 })
 
 export const getCommentDetails = asyncHandler(async (req, res) => {

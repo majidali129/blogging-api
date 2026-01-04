@@ -7,9 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/utils/api-error";
 import { apiResponse } from "@/utils/api-response";
 import { asyncHandler } from "@/utils/async-handler";
+import { PostQueryBuilder } from "@/utils/query-builder.ts/post-query-builder";
 import { newPostSchema, updatePostSchema } from "@/utils/zod/post-schema";
 import fs from 'fs'
-import { parse } from "path";
 
 
 export const createPost = asyncHandler(async (req, res) => {
@@ -133,86 +133,38 @@ export const deletePost = asyncHandler(async (req, res) => {
     return apiResponse(res, 200, 'Post deleted successfully')
 })
 
-type QueryFields = {
-    page?: string;
-    pageSize?: string;
-    search?: string;
-    slug?: string;
-    tags?: string; // 't1,t2,t3
-    isMemberOnly?: string;
-}
-export const getAllPosts = asyncHandler(async (req, res) => {
-    const { page = '1', pageSize = config.DEFAULT_RESPONSE_LIMIT, search = "", slug = "", tags = "", isMemberOnly  }: QueryFields = req.query;
-    const currentPage = parseInt(page, 10);
-    const perPage = parseInt(pageSize, 10);
-    const offset = (currentPage - 1) * perPage;
 
-    const whereClause: any = {};
-    if (slug) whereClause.slug = slug;
-    else if ( search || tags || isMemberOnly) {
-        whereClause.OR = [
-            search ? {
-                title: { contains: search },
-            } : undefined,
-            search ? {
-                description: { contains: search, mode: 'insensitive' },
-                     
-            } : undefined,
-            search ? {
-                summary: { contains: search, mode: 'insensitive' },
-            } : undefined,
-            tags && tags.length > 0 ? {
-                tags: {
-                    hasSome: tags?.trim().split(',')
-                },
-            } : undefined,
-            isMemberOnly ? { isMemberOnly: isMemberOnly === 'true' } : undefined
-        ].filter(Boolean)
-    };
-    console.log(JSON.stringify(whereClause))
+export const getAllPosts = asyncHandler(async (req, res) => {
+    const builder = new PostQueryBuilder(req.query, config.DEFAULT_RESPONSE_LIMIT,req.user);
+    await builder
+        .addPagination()
+        .addViewFilter()
+        .addSlugFilter()
+        .addSearchFilter()
+        .addTagFilter()
+        .addMemberShipFilter()
+        .addFollowingFilter();
     
-    
+    const filters = builder.build();
+
     const posts = await prisma.post.findMany({
-        skip: offset,
-       take: perPage,
-        where: whereClause,
-        select: {
-            id: true,
-            title: true,
-            slug: true,
-            description: true,
-            coverImage: true,
-            isMemberOnly: true,
-            tags: true,
-            author: {
-                select: {
-                    id: true,
-                    username: true,
-                    profileImage: true
-                }
-            },
-            createdAt: true,
-            updatedAt: true,
-            _count: {
-                select: {
-                    comments: true,
-                    likes: true,
-                    bookmarks: true
-                }
-            }
-        },
-    });
-    const count = await prisma.post.count();
-    const totalPages = Math.ceil(count / perPage)
-    const hasNext = currentPage < totalPages;
+        where: filters.where,
+        orderBy: filters.orderBy,
+        skip: filters.skip,
+        take: filters.take,
+        select: filters.select
+    })
+    const count = await prisma.post.count({ where: filters.where });
+    const totalPages = Math.ceil(count / filters.pagination.pageSize)
 
     return apiResponse(res, 200, 'Posts fetched successfully', {
         total: count,
-        page: currentPage,
-        pageSize: perPage,
+        page: filters.pagination.page,
+        pageSize: filters.pagination.pageSize,
         totalPages,
-        hasNext,
+        hasNext: filters.pagination.page < totalPages,
         results: posts.length,
+        view: req.query.view || 'infinity',
         posts,
     })
 })

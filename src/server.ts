@@ -3,6 +3,7 @@ import express  from 'express';
 import { config } from './config/index'
 import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
+import morgan from 'morgan'
 import { appRouter } from './routes/index';
 import { globalErrorHandler } from './middleware/globar-error-handler';
 
@@ -25,7 +26,7 @@ const app = express();
 
     (() => {
     
-        app.use(cors(corsOptions)).use(express.json()).use(express.urlencoded({ extended: true })).use(cookieParser());
+        app.use(cors(corsOptions)).use(express.json()).use(express.urlencoded({ extended: true })).use(cookieParser()).use(morgan('dev'));
 
         app.get('/health', (req, res) => {
             res.status(200).json({
